@@ -24,6 +24,8 @@
 		<ul>
 			{{range $place, $dates := .Locations}}
 			<li>{{formatPlace $place}}: {{range $dates}}{{.}} {{end}}</li>
+			{{else}}
+			<li>No concerts found.</li>
 			{{end}}
 		</ul>
 	</div>
