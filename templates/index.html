@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Groupie Tracker</title>
+	<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+	<h1>Artists</h1>
+
+	<form action="/" method="GET">
+		<input type="text" name="q" value="{{.Query}}" placeholder="Search by name">
+		<button type="submit">Search</button>
+	</form>
+
+	<div class="grid">
+		{{range .Artists}}
+		<div class="card">
+			<img src="{{.Image}}" alt="{{.Name}}">
+			<h2><a href="/artist?id={{.ID}}">{{.Name}}</a></h2>
+			<p>Started in {{.CreationDate}} - first album: {{.FirstAlbum}}</p>
+			<p>Members:</p>
+			<ul>
+				{{range .Members}}
+				<li>{{.}}</li>
+				{{end}}
+			</ul>
+		</div>
+		{{else}}
+		<p>No artists found.</p>
+		{{end}}
+	</div>
+</body>
+</html>
