@@ -9,7 +9,7 @@ The data comes from a REST API (the Groupie Trackers API). The website is built 
 - **Home page**: all artists shown as cards (picture, name, start year, first album, members).
 - **Search box (the client-server event)**: the visitor types part of an artist's name and presses *Search*. The browser sends `GET /?q=...` to the server, and the server answers with only the matching artists. The search is case-insensitive, and an empty search shows everyone.
 - **Details page** for each artist: members and a list of concerts (places and dates). Place names are shown in a readable form, for example `north_carolina-usa` becomes `North Carolina, USA`.
-- **Error handling**: wrong requests, unknown pages and API failures receive a proper HTTP error response. The server does not crash.
+- **Error handling**: wrong requests, unknown pages, unsupported methods and API failures receive a proper HTTP status code and a short message. The server does not crash.
 - **Unit tests** for the helper functions.
 
 ## Requirements
@@ -29,13 +29,15 @@ The data comes from a REST API (the Groupie Trackers API). The website is built 
 3. Open <http://localhost:8080> in your browser.
 
 > Use `go run .` and not `go run main.go`: the program is made of several files, and `go run main.go` would compile only one of them.
+>
+> The templates are loaded **once, at startup**, using relative paths. Run the program from the project folder, and restart it after editing a template.
 
 ## Project structure
 
 ```
 groupie-tracker/
 ├── go.mod
-├── main.go            # starts the server, routes, and the HTTP handlers
+├── main.go            # startup, routes, and the HTTP handlers
 ├── data.go            # data types, API address, and the code that fetches and searches API data
 ├── helpers.go         # small helpers: formatPlace, titleCase, filterArtists
 ├── helpers_test.go    # unit tests for the helpers
@@ -54,15 +56,19 @@ groupie-tracker/
 | `GET /artist?id=N` | Details page of the artist whose `id` is `N`. |
 | `GET /static/...` | Static files (the stylesheet). |
 
+Only the `GET` method is accepted by the page routes (`/` and `/artist`).
+
 ## Error handling
 
 | Situation | Response |
 |---|---|
 | Missing or invalid artist id (`/artist?id=abc`, `/artist`) | `400 Bad Request` |
 | Unknown path, or an artist id that does not exist | `404 Not Found` |
+| A method other than `GET` on the pages (for example `POST`) | `405 Method Not Allowed` (with an `Allow: GET` header) |
 | The API is unreachable, too slow (10 second timeout), answers with an error status, or sends invalid JSON | `500 Internal Server Error` with a short message; the real error is written to the server log |
-| A template file cannot be loaded | `500 Internal Server Error` |
 | An artist exists but has no tour data | The page is shown with an empty concerts list |
+
+If a template cannot be loaded, the program stops at startup with a clear message instead of failing later for visitors.
 
 ## Tests
 
@@ -82,3 +88,7 @@ The tests cover `formatPlace` (readable place names) and `filterArtists` (the se
 
 - `/artists` returns a list of artists (id, image, name, members, creation date, first album).
 - `/relation` returns all tour data at once, wrapped as `{"index": [{"id": 1, "datesLocations": {...}}, ...]}`. Each entry maps a place to a list of dates. The site finds an artist's entry by matching its `id`.
+
+
+## Author
+Shady Elmougy

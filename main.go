@@ -8,19 +8,48 @@ import (
 	"strconv"
 )
 
+var (
+	indexTmpl  *template.Template
+	artistTmpl *template.Template
+)
+
 func main() {
+	err := loadTemplates()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/artist", artistHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	fmt.Println("Server running at http://localhost:8080")
-	err := http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
+func loadTemplates() error {
+	var err error
+
+	indexTmpl, err = template.ParseFiles("templates/index.html")
+	if err != nil {
+		return err
+	}
+
+	funcs := template.FuncMap{"formatPlace": formatPlace}
+	artistTmpl, err = template.New("artist.html").Funcs(funcs).ParseFiles("templates/artist.html")
+	return err
+}
+
 func homeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -40,20 +69,19 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		Artists: filterArtists(artists, query),
 	}
 
-	tmpl, err := template.ParseFiles("templates/index.html")
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Could not load page", http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, page)
+	err = indexTmpl.Execute(w, page)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
 func artistHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil {
 		http.Error(w, "Invalid artist id", http.StatusBadRequest)
@@ -89,15 +117,7 @@ func artistHandler(w http.ResponseWriter, r *http.Request) {
 		Locations: relation.DatesLocations,
 	}
 
-	funcs := template.FuncMap{"formatPlace": formatPlace}
-	tmpl, err := template.New("artist.html").Funcs(funcs).ParseFiles("templates/artist.html")
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Could not load page", http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, page)
+	err = artistTmpl.Execute(w, page)
 	if err != nil {
 		log.Println(err)
 	}
