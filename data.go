@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 )
@@ -54,12 +53,7 @@ func fetchJSON(url string, target any) error {
 		return fmt.Errorf("fetching %s: unexpected status: %s", url, resp.Status)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(body, target)
+	return json.NewDecoder(resp.Body).Decode(target)
 }
 
 func findArtist(artists []Artist, id int) (Artist, bool) {
